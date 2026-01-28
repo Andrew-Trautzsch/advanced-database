@@ -1,0 +1,18 @@
+https:// <= protocol
+
+https://mywebsite.com <== DNS address of the url
+
+    mywebsite.com --> 123.12.45.16 <== IP address
+
+https://123.12.45.16 <== "machine" that houses the web server
+
+https://mywebsite.com:563 <== port number -- usually implied
+    below 1000 are system reserved
+
+https://mywebsite.com/mypage <== route = "/mypage"
+
+https://mywebsite.com/catalog/blender <== route = "/catalog/blender"
+    Tell server to take the route apart and search for blenders
+
+https://mywebsite.com/catalog?category="blenders"&brand="KitchenAid" <== using multiple parameters
+
