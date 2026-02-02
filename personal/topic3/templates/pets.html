@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <H1>
+            The PETS
+        </H1>
+        <hr/>
+        <table>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Kind</th>
+                <th>Age</th>
+                <th>Food</th>
+            </tr>
+            {% for pet in pets %}
+            <tr>
+                {% for item in pet %}
+                <td>
+                    {{item}}
+                </td>
+                {%endfor%}
+                <td><a href="/delete/{{pet[0]}}">Delete</a></td>
+            </tr>
+            {%endfor%}
+        </table>
+        <hr/>
+        <a href="/create">Create a new pet</a>
+    </body>
+</html>
