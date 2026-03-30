@@ -1,28 +1,17 @@
 import os
 
-from peewee import IntegerField, Model, SqliteDatabase, TextField
+from mongita import MongitaClientDisk
+from bson.objectid import ObjectId
 
-database = SqliteDatabase(None)
+client = None
+db = None
+collection = None
 
-class BaseModel(Model):
-    class Meta:
-        database = database
-
-class Pet(BaseModel):
-    name = TextField(null=False)
-    type = TextField(null=False)
-    age = IntegerField(default=0)
-
-def initialize(database_file):
-    if not database.is_closed():
-        database.close()
-    database.init(database_file)
-    database.connect(reuse_if_open=True)
-    database.create_tables([Pet])
-
-def close_connection():
-    if not database.is_closed():
-        database.close()
+def initialize(db_name):
+    global client, db, collection
+    client = MongitaClientDisk()
+    db = client[db_name]
+    collection = db.pets
 
 def _normalize_age(value):
     try:
@@ -35,50 +24,47 @@ def pet_to_dict(pet):
 
 
 def get_pets():
-    query = Pet.select().order_by(Pet.name)
-    return [pet_to_dict(pet) for pet in query]
+    pets = list(collection.find())
+    for pet in pets:
+        pet["id"] = str(pet["_id"])
+    return pets
 
 def get_pet(id):
-    pet = Pet.get_or_none(Pet.id == int(id))
-    if pet is None:
+    try:
+        pet = collection.find_one({"_id": ObjectId(id)})
+        if pet:
+            pet["id"] = str(pet["_id"])
+        return pet
+    except:
         return None
-    return pet_to_dict(pet)
 
 def create_pet(data):
-    if "name" not in data:
-        raise Exception("Hey! Pet doesn't have name.")
-    if data["name"].strip()=="":
-        raise Exception("Hey! Pet doesn't have name.")
-    pet = Pet.create(
-        name=(data.get("name") or "").strip(),
-        type=(data.get("type") or "").strip(),
-        age=_normalize_age(data.get("age")),
-    )
-    return pet.id
-
-def delete_pet(id):
-    Pet.delete().where(Pet.id == int(id)).execute()
-
+    pet_holder = {
+        "name": (data.get("name") or "").strip(),
+        "type": (data.get("type") or "").strip(),
+        "age": _normalize_age(data.get("age"))
+    }
+    result = collection.insert_one(pet_holder)
+    return str(result.inserted_id)
 
 def update_pet(id, data):
-    if "name" not in data:
-        raise Exception("Hey! Pet doesn't have name.")
-    if data["name"].strip()=="":
-        raise Exception("Hey! Pet doesn't have name.")
-    Pet.update(
-        name=(data.get("name") or "").strip(),
-        type=(data.get("type") or "").strip(),
-        age=_normalize_age(data.get("age")),
-    ).where(Pet.id == int(id)).execute()
+    collection.update_one(
+        {"_id": ObjectId(id)},  # use the function argument
+        {"$set": {
+            "name": (data.get("name") or "").strip(),
+            "type": (data.get("type") or "").strip(),
+            "age": _normalize_age(data.get("age"))
+        }}
+    )
 
-def setup_test_database(db_file="test_pets.db"):
-    close_connection()
-    try:
-        os.remove(db_file)
-    except FileNotFoundError:
-        pass
 
+def delete_pet(id):
+    collection.delete_one({"_id": ObjectId(id)})
+
+def setup_test_database(db_file="test_pets"):
     initialize(db_file)
+
+    collection.delete_many({})
 
     pets = [
         {"name": "dorothy", "type": "dog", "age": 9},
@@ -90,6 +76,7 @@ def setup_test_database(db_file="test_pets.db"):
         create_pet(pet)
 
     assert len(get_pets()) == 4
+    print("test database created")
 
 
 def test_get_pets():
@@ -100,6 +87,7 @@ def test_get_pets():
     for key in ["id", "name", "type", "age"]:
         assert key in pets[0]
     assert type(pets[0]["name"]) is str
+    print("test_get_pets succeeded")
 
 
 def test_create_pet_and_get_pet():
@@ -109,6 +97,7 @@ def test_create_pet_and_get_pet():
     assert pet["name"] == "walter"
     assert pet["age"] == 2
     assert pet["type"] == "mouse"
+    print("test_create_pet_and_get_pet succeeded")
 
 
 def test_update_pet():
@@ -119,12 +108,14 @@ def test_update_pet():
     assert pet["name"] == "updated"
     assert pet["age"] == 8
     assert pet["type"] == "dog"
+    print("test_update_pet succeeded")
 
 
 def test_delete_pet():
     new_id = create_pet({"name": "delete_me", "age": 3, "type": "fish"})
     delete_pet(new_id)
     assert get_pet(new_id) is None
+    print("test_delete_pet succeeded")
 
 
 if __name__ == "__main__":
@@ -133,5 +124,4 @@ if __name__ == "__main__":
     test_create_pet_and_get_pet()
     test_update_pet()
     test_delete_pet()
-    close_connection()
     print("done.")
