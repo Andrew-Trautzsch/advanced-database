@@ -2,7 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for
 import database
 
 # remember to $ pip install flask
-# remember to $ pip install peewee
 
 database.initialize("pets")
 
