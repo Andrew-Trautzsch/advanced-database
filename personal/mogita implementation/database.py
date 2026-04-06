@@ -14,10 +14,14 @@ def initialize(db_name):
     collection = db.pets
 
 def _normalize_age(value):
-    try:
-        return int(value)
-    except Exception:
+    if value is None:
         return 0
+    if isinstance(value, str) and value.strip() == "":
+        return 0
+    age = int(value)
+    if age < 0:
+        raise ValueError("Age must be non-negative.")
+    return age
 
 def pet_to_dict(pet):
     return {"id": pet.id, "name": pet.name, "type": pet.type, "age": pet.age}
@@ -39,20 +43,36 @@ def get_pet(id):
         return None
 
 def create_pet(data):
+    name = (data.get("name") or "").strip()
+    pet_type = (data.get("type") or "").strip()
+
+    if name == "":
+        raise ValueError("Pet name is required.")
+    if pet_type == "":
+        raise ValueError("Pet type is required.")
+
     pet_holder = {
-        "name": (data.get("name") or "").strip(),
-        "type": (data.get("type") or "").strip(),
+        "name": name,
+        "type": pet_type,
         "age": _normalize_age(data.get("age"))
     }
     result = collection.insert_one(pet_holder)
     return str(result.inserted_id)
 
 def update_pet(id, data):
+    name = (data.get("name") or "").strip()
+    pet_type = (data.get("type") or "").strip()
+
+    if name == "":
+        raise ValueError("Pet name is required.")
+    if pet_type == "":
+        raise ValueError("Pet type is required.")
+
     collection.update_one(
-        {"_id": ObjectId(id)},  # use the function argument
+        {"_id": ObjectId(id)},
         {"$set": {
-            "name": (data.get("name") or "").strip(),
-            "type": (data.get("type") or "").strip(),
+            "name": name,
+            "type": pet_type,
             "age": _normalize_age(data.get("age"))
         }}
     )
@@ -118,10 +138,40 @@ def test_delete_pet():
     print("test_delete_pet succeeded")
 
 
+def test_rejects_empty_name():
+    try:
+        create_pet({"name": "", "type": "dog", "age": 1})
+        assert False, "Expected ValueError for empty name"
+    except ValueError as e:
+        assert "name" in str(e).lower()
+    print("test_rejects_empty_name succeeded")
+
+
+def test_rejects_empty_type():
+    try:
+        create_pet({"name": "rex", "type": "", "age": 1})
+        assert False, "Expected ValueError for empty type"
+    except ValueError as e:
+        assert "type" in str(e).lower()
+    print("test_rejects_empty_type succeeded")
+
+
+def test_rejects_negative_age():
+    try:
+        create_pet({"name": "rex", "type": "dog", "age": -1})
+        assert False, "Expected ValueError for negative age"
+    except ValueError as e:
+        assert "age" in str(e).lower()
+    print("test_rejects_negative_age succeeded")
+
+
 if __name__ == "__main__":
     setup_test_database()
     test_get_pets()
     test_create_pet_and_get_pet()
     test_update_pet()
     test_delete_pet()
+    test_rejects_empty_name()
+    test_rejects_empty_type()
+    test_rejects_negative_age()
     print("done.")
