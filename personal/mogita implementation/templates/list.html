@@ -6,6 +6,7 @@
         <th>Name</th>
         <th>Type</th>
         <th>Age</th>
+        <th>Owner</th>
     </tr>
     {% for pet in pets %}
     <tr>
@@ -13,6 +14,7 @@
         <td>{{ pet['name'] }}</td>
         <td>{{ pet['type'] }}</td>
         <td>{{ pet['age'] }}</td>
+        <td>{{ pet['owner_name'] }}</td>
         <td><a href="/delete/{{pet['id']}}">Delete</a></td>
         <td><a href="/update/{{pet['id']}}">Update</a></td>
     </tr>
@@ -20,5 +22,7 @@
 </table>
 <hr />
 <a href="/create">Create New Pet</a>
+<hr />
+<a href="/owners">Manage Owners</a>
 
 </html>
