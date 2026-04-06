@@ -9,7 +9,7 @@
     </tr>
     {% for owner in owners %}
     <tr>
-        <td>{{ owner['id'] }}</td>
+        <td>{{ loop.index }}</td>
         <td>{{ owner['name'] }}</td>
         <td>{{ owner['city'] }}</td>
         <td>{{ owner['type_of_home'] }}</td>
