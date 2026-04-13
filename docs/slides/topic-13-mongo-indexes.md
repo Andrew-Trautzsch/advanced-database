@@ -1,12 +1,12 @@
-# Topic 12: Mongo Indexes
+# Topic 13: Mongo Indexes
 
-Topic 12 moves from local Mongita storage to Mongo Atlas and introduces MongoDB indexes.
+Topic 13 moves from basic Mongo storage to Mongo Atlas and introduces MongoDB indexes.
 
 ---
 
 ## Atlas Context
 
-- topic 12 uses a live Mongo Atlas database
+- topic 13 uses a live Mongo Atlas database
 - the API is standard MongoDB via PyMongo
 - indexes are created in the database, not in Flask templates
 - we add them when the app sets up the collections
