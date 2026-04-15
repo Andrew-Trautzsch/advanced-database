@@ -7,6 +7,8 @@ db = None
 owners_collection = None
 pets_collection = None
 
+OWNER_INDEX_FIELDS = ("name",)
+PET_INDEX_FIELDS = ("name", "type", "owner_id")
 
 class NotFoundError(LookupError):
     pass
@@ -25,12 +27,52 @@ def initialize(database_name="pets", uri="mongodb://localhost:27017"):
     pets_collection = db.pets
 
 
+def _get_index_names(collection):
+    index_information = collection.index_information()
+    if isinstance(index_information, dict):
+        return set(index_information.keys())
+
+    names = set()
+    for index_entry in index_information:
+        names.update(index_entry.keys())
+    return names
+
+
+def _ensure_index(collection, field_name):
+    index_name = f"{field_name}_1"
+    if index_name not in _get_index_names(collection):
+        collection.create_index(field_name)
+
+
+def ensure_indexes():
+    for field_name in OWNER_INDEX_FIELDS:
+        _ensure_index(owners_collection, field_name)
+
+    for field_name in PET_INDEX_FIELDS:
+        _ensure_index(pets_collection, field_name)
+
+
 def setup_database(database_name="pets", uri="mongodb://localhost:27017"):
     initialize(database_name, uri=uri)
     # pymongo creates collections lazily — just verify connectivity
     owners_collection.count_documents({})
     pets_collection.count_documents({})
+    ensure_indexes()
 
+def test_setup_database_creates_collections_and_indexes():
+    setup_database("pytest_setup", client_factory=MongitaClientMemory)
+    assert owners_collection is not None
+    assert pets_collection is not None
+    assert owners_collection.count_documents({}) == 0
+    assert pets_collection.count_documents({}) == 0
+    assert _get_index_names(owners_collection) == {"_id_", "name_1"}
+    assert _get_index_names(pets_collection) == {
+        "_id_",
+        "name_1",
+        "type_1",
+        "owner_id_1",
+    }
+    close_connection()
 
 def close_connection():
     global client, db, owners_collection, pets_collection
